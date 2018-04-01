@@ -1,3 +1,5 @@
+package ga
+
 import java.util.*
 import java.util.stream.Collectors
 import kotlin.collections.ArrayList
@@ -58,7 +60,7 @@ class GeneticAlgorithm(private val individualGenerator: () -> Individual,
 
             //mutation
             currentGeneration = currentGeneration.map {
-                if (probably(0.02)) {
+                if (probably(0.1)) {
                     mutation(it)
                 } else it
             }
