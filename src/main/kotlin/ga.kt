@@ -6,26 +6,22 @@ import kotlin.math.max
 val random = Random(0)
 
 fun main(args: Array<String>) {
-    val taskSize = 100L
+    val taskSize = 500
 
     val ga = GeneticAlgorithm(
-            individualGenerator = { random.ints(taskSize, 0, 2).boxed().collect(Collectors.toList()) },
-            fitnessFunc = { it.sum().toDouble() },
-            mutation = { individual -> individual.map { if(random.nextInt(100) < 10) !it else it } },
-            tournamentSize = 10,
-            crossoverFunc = { p1: Individual, p2: Individual ->
-//                val border = random.nextInt(p1.size)
-//                val child: List<Int> = p1.subList(0, border) + p2.subList(border, p2.size)
-                val child = (0 until p1.size).map { max(p1[it], p2[it]) }
-                child
-            }
+            individualGenerator = { randomNumbers(taskSize, 0, 1) },
+            fitnessFunc = { it.sum() },
+            mutation = { individual -> individual.map { if (probably(0.01)) !it else it } },
+            tournamentSize = 25,
+            crossoverFunc = { p1, p2 -> (0 until p1.size).map { max(p1[it], p2[it]) } }
     )
     val result = ga.run()
-    print("Fitness: %s Value: %s".format(result.fitness, result.individual))
+
+    print("Value: %s\nFitness: %s".format(result.individual, result.fitness))
 }
 
 operator fun Int.not(): Int {
-    return if(this == 1) 0
+    return if (this == 1) 0
     else 1
 }
 
@@ -34,27 +30,35 @@ typealias Chromosome = List<Int>
 typealias Individual = Chromosome
 
 class GeneticAlgorithm(private val individualGenerator: () -> Individual,
-                       private val fitnessFunc: (Individual) -> Double,
+                       private val fitnessFunc: (Individual) -> Int,
                        private val mutation: (Individual) -> Individual,
                        private val tournamentSize: Int,
-                       private val crossoverFunc: (Individual, Individual) -> Individual) {
+                       private val crossoverFunc: (Individual, Individual) -> Individual,
+                       private val generationListener: (Int, GAResult) -> Unit = { _, _ -> }) {
 
-    fun run(populationSize: Int = 50, generationAmount: Int = 1000): GAResult {
+    fun run(populationSize: Int = 50, generationAmount: Int = 50): GAResult {
 
         var currentGeneration: List<Individual> = ArrayList()
-        var requiredIndividualAmount: Int
+
+        var bestResult: GAResult? = null
 
         for (generationNumber in (0 until generationAmount)) {
-            requiredIndividualAmount = populationSize - currentGeneration.size
+            val requiredIndividualAmount = populationSize - currentGeneration.size
 
             val generation = (0 until requiredIndividualAmount).asSequence()
                     .map { individualGenerator() }
                     .toList()
             currentGeneration += generation
 
+            val currentBestResult = currentGeneration.map { GAResult(it to fitnessFunc(it)) }.maxBy { it.fitness }!!
+            if(bestResult == null || currentBestResult.fitness > bestResult.fitness) {
+                bestResult = currentBestResult
+            }
+            generationListener(generationNumber, bestResult)
+
             //mutation
             currentGeneration = currentGeneration.map {
-                if(random.nextInt(100) < 20) {
+                if (probably(0.02)) {
                     mutation(it)
                 } else it
             }
@@ -62,32 +66,39 @@ class GeneticAlgorithm(private val individualGenerator: () -> Individual,
             val results = currentGeneration.asSequence()
                     .map { it to fitnessFunc(it) }
                     .map { GAResult(it) }
-                    .toList().shuffled()
+                    .toList().shuffled(random)
 
             //selection
             val selectedOnes = results.chunked(tournamentSize)
                     .map {
-                        return it.maxBy(GAResult::fitness)!!
+                        it.maxBy(GAResult::fitness)!!
                     }.map(GAResult::individual)
             currentGeneration = selectedOnes
 
             //crossover
             currentGeneration = currentGeneration.chunked(2) {
-                val (parent1, parent2) = it
-                if(random.nextInt(100) < 60) {
+                if (it.size == 1 || probably(0.8)) {
                     it
                 } else {
+                    val (parent1, parent2) = it
                     listOf(crossoverFunc(parent1, parent2))
                 }
             }.flatten()
         }
 
-        return currentGeneration.map { GAResult(it to fitnessFunc(it)) }.maxBy { it.fitness }!!
+        return bestResult!!
     }
 
-    inner class GAResult(pair: Pair<Individual, Double>) {
+    inner class GAResult(pair: Pair<Individual, Int>) {
         val individual: Individual = pair.first
-        val fitness: Double = pair.second
+        val fitness: Int = pair.second
     }
 }
+
+fun probably(probability: Double): Boolean {
+    return random.nextDouble() < probability
+}
+
+fun randomNumbers(amount: Int, min: Int, max: Int): List<Int> =
+        random.ints(amount.toLong(), min, max + 1).boxed().collect(Collectors.toList())!!
 
