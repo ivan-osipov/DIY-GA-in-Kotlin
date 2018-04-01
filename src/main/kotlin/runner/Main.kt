@@ -7,7 +7,6 @@ import javafx.scene.layout.Pane
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import model.createData
-import scheduler.Scheduler
 
 class Main : Application() {
 
@@ -40,8 +39,6 @@ class Main : Application() {
         val runButton = Button("Schedule")
         root.children.add(runButton)
         runButton.setOnAction {
-            val scheduler = Scheduler()
-            scheduler.schedule(data)
         }
     }
 

@@ -8,37 +8,17 @@ class Data(val teachers: List<Teacher>,
            val students: List<Student>,
            val rooms: List<Room>)
 
-class Schedule {
+open class Entity(var name: String, val id: UUID = UUID.randomUUID())
 
-}
+class Teacher(name: String, val disciplines: List<Discipline>) : Entity(name)
 
-open class Entity {
-    val id: UUID = UUID.randomUUID()
-    var name: String = "Default"
-}
+class Student(name: String, val studyLoad: List<Course>) : Entity(name)
 
-class Discipline : Entity()
-
-class Course(val discipline: Discipline, val capacity: Int): Entity()
-
-class Teacher : Entity() {
-    val disciplines: MutableList<Discipline> = ArrayList()
-}
-
-class Student : Entity() {
-    val eduPlan = EduPlan()
-}
-
-class EduPlan {
-    val studyLoad: MutableList<Course> = ArrayList()
-}
-
-class Room : Entity() {
-    var capacity: Int = 0
-}
+class Room(name: String, var capacity: Int) : Entity(name)
 
 
-class Matrix {
+data class Discipline(val name: String)
 
-}
+data class Course(val discipline: Discipline, val capacity: Int)
+
 
